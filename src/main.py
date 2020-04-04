@@ -1,4 +1,8 @@
+from multiprocessing import Process
 from src.amazon import AmazonManger
 
-AmazonManger(is_wholefood=False).start()
-AmazonManger(is_wholefood=True).start()
+manager = AmazonManger(is_whole_foods=True)
+try:
+    manager.start()
+except:
+    manager.driver.close()

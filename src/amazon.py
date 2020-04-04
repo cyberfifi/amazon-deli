@@ -22,11 +22,11 @@ class AmazonManger:
         self.auth_token = ''
         self.phone_number = []
         self.is_whole_foods = is_whole_foods
-        self.name = 'Whole Foods' if is_whole_foods else 'Amazon Fresh'
+        self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
 
     def start(self):
         self.set_credentials()
-        self.driver.get("http://www.amazon.com")
+        self.driver.get("https://www.amazon.com")
         self.sign_in()
         self.access_delivery_page()
         while True:
@@ -65,33 +65,56 @@ class AmazonManger:
         time.sleep(1)
         signin_btn.click()
         time.sleep(1)
+        is_two_fa_page = len(self.driver.find_elements_by_xpath(
+            "//*[contains(text(), 'Where should we send the communication?')]")) > 0
+        if is_two_fa_page:
+            radios = self.driver.find_elements_by_xpath('//*[@type="radio"]')
+            radios[0].click()
+            time.sleep(1)
+            continue_btn = self.driver.find_element_by_xpath('//*[@id="continue"]')
+            continue_btn.click()
+            LOGGER.info('2FA sent')
+            time.sleep(20)
         LOGGER.info('sign in completed')
+
+    def go_to_home(self):
+        self.driver.get("http://www.amazon.com")
 
     def access_delivery_page(self):
         cart_btn = self.driver.find_element_by_xpath('//*[@id="nav-cart"]')
         cart_btn.click()
+        time.sleep(3)
+        if self.is_whole_foods:
+            check_out_btn = self.driver.find_element_by_xpath(
+                "//*[contains(text(), 'Checkout Whole Foods Market Cart')]/../input")
+        else:
+            check_out_btn = self.driver.find_element_by_xpath(
+                "//*[contains(text(), 'Checkout Amazon Fresh Cart')]/../input")
         time.sleep(1)
-        check_out_fresh_btn = self.driver.find_element_by_xpath(
-            "//*[contains(text(), 'Checkout Amazon Fresh Cart')]/../input")
-        time.sleep(1)
-        check_out_fresh_btn.click()
+        check_out_btn.click()
         time.sleep(1)
         continue_btn = self.driver.find_element_by_xpath('//*[@id="a-autoid-0"]/span/a')
         continue_btn.click()
+        if self.is_whole_foods:
+            time.sleep(1)
+            continue_btn = self.driver.find_element_by_xpath('//*[@id="subsContinueButton"]/span/input')
+            continue_btn.click()
         time.sleep(1)
-        LOGGER.info('accessed delivery page')
+        LOGGER.info('accessed {} delivery page'.format(self.name))
 
     def check_time_window(self):
         date_containers = self.driver.find_elements_by_class_name('ufss-date-select-toggle-container')
         for date_container in date_containers:
             if len(date_container.find_elements_by_class_name('ufss-unavailable')) == 0:
                 self.send_sms('{} has delivery time window!'.format(self.name))
-                time.sleep(3600)
+                time.sleep(600)
                 # self.place_order(date_container)
         time.sleep(5)
         LOGGER.info('{} No time window, refresh...'.format(self.name))
-        self.driver.refresh()
-        time.sleep(2)
+        self.is_whole_foods = True if self.is_whole_foods is False else False
+        self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
+        self.go_to_home()
+        self.access_delivery_page()
 
     def send_sms(self, text):
         account_sid = self.sid
