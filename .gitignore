@@ -1,0 +1,4 @@
+.idea
+credentials.yaml
+configs.yaml
+*.log

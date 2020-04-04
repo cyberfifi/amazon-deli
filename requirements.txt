@@ -1,0 +1,15 @@
+PyYAML
+twilio
+selenium
+amazon:
+  email: sfei.shopping@gmail.com
+  password: 19881109ff
+insta_cart:
+  email: sfei1001@gmail.com
+  password: 19881109fF
+twillio:
+  sid: AC6c5a35a74edbbd0db4385560984ea936
+  auth_token: 8a665a79ae9f4a71b012d7d69020c278
+phone_number:
+  - 2019686330
+  - 2012322594
