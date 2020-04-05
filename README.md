@@ -9,6 +9,7 @@ than the chromedriver-mac.
 request to you Amazon Mobile App. You need to click and confirm it with in 1 min. 
 Otherwise, login will fail.
 - After running for a while, the app may get stuck and not responding
+- Whole Foods is not support since the checkout process is too complicated
 
 # Prerequisites
 ## Twillio
