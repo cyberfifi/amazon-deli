@@ -1,5 +1,5 @@
 # COVID-19 Grocery Assistant
-This is a selenium BOT that will access your amazon delivery page through browser. 
+This is a selenium BOT that will access your Amazon Fresh delivery page through browser. 
 Once a delivery window is detected, you will get an SMS.
 
 # Note
@@ -28,7 +28,7 @@ Install the Amazon Mobile App on your phone. You will need this for the potentia
 Factor Authentication step. You will also need this to place the order once your receive
 the SMS notification.
 ### Cart
-Make sure you always put some items in both of your Fresh cart and Whole Food cart. 
+Make sure you always put some items in both of your Fresh cart. 
 The bot will not be able to access delivery page without items in your carts.
 
 ## Python 3

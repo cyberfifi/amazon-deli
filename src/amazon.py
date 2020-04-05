@@ -10,7 +10,7 @@ LOGGER = get_logger()
 
 
 class AmazonManger:
-    def __init__(self, is_whole_foods):
+    def __init__(self):
         chrome_options = Options()
         # chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(
@@ -21,8 +21,7 @@ class AmazonManger:
         self.sid = ''
         self.auth_token = ''
         self.phone_number = []
-        self.is_whole_foods = is_whole_foods
-        self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
+        self.name = 'Amazon Fresh'
         self.set_credentials()
 
     def sign_in(self):
@@ -66,7 +65,8 @@ class AmazonManger:
     def start(self):
         self.driver.get("https://www.amazon.com")
         self.access_delivery_page()
-        self.check_time_window()
+        while True:
+            self.check_time_window()
 
     def set_credentials(self):
         data = get_credentials()
@@ -89,27 +89,13 @@ class AmazonManger:
         cart_btn = self.driver.find_element_by_xpath('//*[@id="nav-cart"]')
         cart_btn.click()
         time.sleep(3)
-        if self.is_whole_foods:
-            check_out_btn = self.driver.find_element_by_xpath(
-                "//*[contains(text(), 'Checkout Whole Foods Market Cart')]/../input")
-        else:
-            check_out_btn = self.driver.find_element_by_xpath(
-                "//*[contains(text(), 'Checkout Amazon Fresh Cart')]/../input")
+        check_out_btn = self.driver.find_element_by_xpath(
+            "//*[contains(text(), 'Checkout Amazon Fresh Cart')]/../input")
         time.sleep(1)
         check_out_btn.click()
         time.sleep(1)
         continue_btn = self.driver.find_element_by_xpath('//*[@id="a-autoid-0"]/span/a')
         continue_btn.click()
-        if self.is_whole_foods:
-            time.sleep(1)
-            continue_btn = self.driver.find_element_by_xpath('//*[@id="subsContinueButton"]/span/input')
-            continue_btn.click()
-            time.sleep(1)
-            warning_box = self.driver.find_elements_by_class_name('page-level-error')
-            if len(warning_box) > 0:
-                btn = self.driver.find_element_by_xpath(
-                    '//*[@id="changeQuantityFormId"]/div[2]/div[2]/div/div/span/span/input')
-                btn.click()
         time.sleep(1)
         LOGGER.info('accessed {} delivery page'.format(self.name))
 
@@ -126,8 +112,7 @@ class AmazonManger:
         time.sleep(5)
         if not has_window:
             LOGGER.info('{} No time window, refresh...'.format(self.name))
-        self.is_whole_foods = True if self.is_whole_foods is False else False
-        self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
+        self.driver.refresh()
 
     def send_sms(self, text):
         account_sid = self.sid
