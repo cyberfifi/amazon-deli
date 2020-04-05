@@ -120,8 +120,6 @@ class AmazonManger:
             LOGGER.info('{} No time window, refresh...'.format(self.name))
         self.is_whole_foods = True if self.is_whole_foods is False else False
         self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
-        self.go_to_home()
-        self.access_delivery_page()
 
     def send_sms(self, text):
         account_sid = self.sid
