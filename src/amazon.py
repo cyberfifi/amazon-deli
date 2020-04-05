@@ -112,7 +112,7 @@ class AmazonManger:
             if len(date_container.find_elements_by_class_name('ufss-unavailable')) == 0:
                 LOGGER.info('{} has delivery time window!'.format(self.name))
                 self.send_sms('{} has delivery time window!'.format(self.name))
-                time.sleep(1)
+                time.sleep(600)  # sleep 10 mins when a time window found
                 # self.place_order(date_container)
                 has_window = True
         time.sleep(5)
