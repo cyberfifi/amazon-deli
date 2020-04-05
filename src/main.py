@@ -9,9 +9,4 @@ def run_main():
         manager.start()
 
 
-while True:
-    try:
-        run_main()
-    except:
-        pass
-    time.sleep(10)
+run_main()

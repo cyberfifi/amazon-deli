@@ -12,7 +12,7 @@ LOGGER = get_logger()
 class AmazonManger:
     def __init__(self, is_whole_foods):
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(
             executable_path='./chromedriver-mac',
             chrome_options=chrome_options)
@@ -59,6 +59,8 @@ class AmazonManger:
             continue_btn.click()
             LOGGER.info('2FA sent')
             time.sleep(60)
+
+        time.sleep(60)
         LOGGER.info('sign in completed')
 
     def start(self):
@@ -102,6 +104,12 @@ class AmazonManger:
             time.sleep(1)
             continue_btn = self.driver.find_element_by_xpath('//*[@id="subsContinueButton"]/span/input')
             continue_btn.click()
+            time.sleep(1)
+            warning_box = self.driver.find_elements_by_class_name('page-level-error')
+            if len(warning_box) > 0:
+                btn = self.driver.find_element_by_xpath(
+                    '//*[@id="changeQuantityFormId"]/div[2]/div[2]/div/div/span/span/input')
+                btn.click()
         time.sleep(1)
         LOGGER.info('accessed {} delivery page'.format(self.name))
 
