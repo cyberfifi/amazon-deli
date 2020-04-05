@@ -1,8 +1,8 @@
 import time
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from twilio.rest import Client
-from datetime import datetime
 from src.utils import get_credentials, get_logger
 from selenium.webdriver.chrome.options import Options
 
@@ -14,7 +14,7 @@ class AmazonManger:
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(
-            executable_path='./chromedriver',
+            executable_path='./chromedriver-mac',
             chrome_options=chrome_options)
         self.email = ''
         self.pw = ''
@@ -23,30 +23,10 @@ class AmazonManger:
         self.phone_number = []
         self.is_whole_foods = is_whole_foods
         self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
-
-    def start(self):
         self.set_credentials()
-        self.driver.get("https://www.amazon.com")
-        self.sign_in()
-        self.access_delivery_page()
-        while True:
-            self.check_time_window()
-
-    def set_credentials(self):
-        data = get_credentials()
-        self.email = data['amazon']['email']
-        self.pw = data['amazon']['password']
-        self.sid = data['twillio']['sid']
-        self.auth_token = data['twillio']['auth_token']
-        self.phone_number = data['phone_number']
-        LOGGER.info('credential loaded')
-
-    @staticmethod
-    def hover(d, el):
-        action = ActionChains(d).move_to_element(el)
-        action.perform()
 
     def sign_in(self):
+        self.driver.get("https://www.amazon.com")
         account_list = self.driver.find_element_by_id('nav-link-accountList')
         self.hover(self.driver, account_list)
         time.sleep(1)
@@ -61,6 +41,10 @@ class AmazonManger:
         continue_btn.click()
         pw_field = self.driver.find_element_by_xpath('//*[@id="ap_password"]')
         pw_field.send_keys(self.pw)
+        keep_session_box = self.driver.find_element_by_xpath(
+            '//*[@id="authportal-main-section"]/div[2]/div/div/div/form/div/div[2]/div/div/label/div/label/input')
+        keep_session_box.click()
+        time.sleep(1)
         signin_btn = self.driver.find_element_by_xpath('//*[@id="signInSubmit"]')
         time.sleep(1)
         signin_btn.click()
@@ -74,8 +58,27 @@ class AmazonManger:
             continue_btn = self.driver.find_element_by_xpath('//*[@id="continue"]')
             continue_btn.click()
             LOGGER.info('2FA sent')
-            time.sleep(20)
+            time.sleep(60)
         LOGGER.info('sign in completed')
+
+    def start(self):
+        self.driver.get("https://www.amazon.com")
+        self.access_delivery_page()
+        self.check_time_window()
+
+    def set_credentials(self):
+        data = get_credentials()
+        self.email = data['amazon']['email']
+        self.pw = data['amazon']['password']
+        self.sid = data['twillio']['sid']
+        self.auth_token = data['twillio']['auth_token']
+        self.phone_number = data['phone_number']
+        LOGGER.info('credential loaded')
+
+    @staticmethod
+    def hover(d, el):
+        action = ActionChains(d).move_to_element(el)
+        action.perform()
 
     def go_to_home(self):
         self.driver.get("http://www.amazon.com")
@@ -104,13 +107,17 @@ class AmazonManger:
 
     def check_time_window(self):
         date_containers = self.driver.find_elements_by_class_name('ufss-date-select-toggle-container')
+        has_window = False
         for date_container in date_containers:
             if len(date_container.find_elements_by_class_name('ufss-unavailable')) == 0:
+                LOGGER.info('{} has delivery time window!'.format(self.name))
                 self.send_sms('{} has delivery time window!'.format(self.name))
-                time.sleep(600)
+                time.sleep(1)
                 # self.place_order(date_container)
+                has_window = True
         time.sleep(5)
-        LOGGER.info('{} No time window, refresh...'.format(self.name))
+        if not has_window:
+            LOGGER.info('{} No time window, refresh...'.format(self.name))
         self.is_whole_foods = True if self.is_whole_foods is False else False
         self.name = 'Whole Foods' if self.is_whole_foods else 'Amazon Fresh'
         self.go_to_home()

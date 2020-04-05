@@ -1,0 +1,11 @@
+amazon:
+  email: {amazon_email}
+  password: {amazon_password}
+twillio:
+  sid: {twillio_sid}
+  auth_token: {twillio_auth_token}
+phone_number:
+  - {phone_number} # 10 digits mobile number. number only, no brackets, no dashes.
+#insta_cart:
+#  email: sfei1001@gmail.com
+#  password: 19881109fF
