@@ -1,17 +1,20 @@
 import time
-import yaml
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from twilio.rest import Client
 from datetime import datetime
 from src.utils import get_credentials, get_logger
+from selenium.webdriver.firefox.options import Options
+
 
 LOGGER = get_logger()
 
 
 class InstaCartManger:
     def __init__(self):
-        self.driver = webdriver.Chrome(executable_path='./chromedriver')
+        options = Options()
+        # options.headless = True
+        self.driver = webdriver.Firefox(options=options, executable_path='./firefoxdriver-mac')
         self.email = ''
         self.pw = ''
         self.sid = ''
@@ -22,7 +25,8 @@ class InstaCartManger:
         self.driver.get("http://www.instacart.com")
         self.sign_in()
         self.access_delivery_page()
-        self.check_time_window()
+        while True:
+            self.check_time_window()
 
     def set_credentials(self):
         data = get_credentials()
@@ -30,6 +34,7 @@ class InstaCartManger:
         self.pw = data['insta_cart']['password']
         self.sid = data['twillio']['sid']
         self.auth_token = data['twillio']['auth_token']
+        LOGGER.info('credential loaded')
 
     @staticmethod
     def hover(d, el):
@@ -37,6 +42,7 @@ class InstaCartManger:
         action.perform()
 
     def sign_in(self):
+        time.sleep(1)
         signin_btn = self.driver.find_element_by_xpath('//*[@id="root"]/div/div/header/div/div[2]/div/button')
         self.hover(self.driver, signin_btn)
         time.sleep(1)
@@ -49,24 +55,25 @@ class InstaCartManger:
         time.sleep(1)
         signin_btn.click()
         time.sleep(5)
+        LOGGER.info('sign in completed')
 
     def access_delivery_page(self):
         self.driver.get("http://www.instacart.com/store/checkout_v3")
         time.sleep(1)
+        LOGGER.info('delivery page accessed')
 
     def check_time_window(self):
         time.sleep(5)
         sorry_els = self.driver.find_elements_by_xpath(
-            "//*[contains(text(), 'We’re sorry, all shoppers are busy for today')]")
+            "//*[contains(text(), 'all shoppers are busy')]")
         if len(sorry_els) > 0:
-            time.sleep(5)
             LOGGER.info('No time window, refresh...')
+            time.sleep(5)
             self.driver.refresh()
-            self.check_time_window()
         else:
             LOGGER.info('Time window found')
             self.send_sms('InstaCart has delivery time window!')
-            time.sleep(3600)
+            time.sleep(600)
 
     def send_sms(self, text):
         account_sid = self.sid

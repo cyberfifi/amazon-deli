@@ -4,18 +4,16 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from twilio.rest import Client
 from src.utils import get_credentials, get_logger
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
 
 LOGGER = get_logger()
 
 
 class AmazonManger:
     def __init__(self):
-        chrome_options = Options()
-        # chrome_options.add_argument("--headless")
-        self.driver = webdriver.Chrome(
-            executable_path='./chromedriver-mac',
-            chrome_options=chrome_options)
+        options = Options()
+        options.headless = True
+        self.driver = webdriver.Firefox(options=options, executable_path='./firefoxdriver-mac')
         self.email = ''
         self.pw = ''
         self.sid = ''
@@ -50,6 +48,10 @@ class AmazonManger:
         time.sleep(1)
         is_two_fa_page = len(self.driver.find_elements_by_xpath(
             "//*[contains(text(), 'Where should we send the communication?')]")) > 0
+        is_captcha = len(self.driver.find_elements_by_xpath('//*[@id="auth-captcha-image-container"]'))
+        if is_captcha:
+            LOGGER.info('Captcha detected. Please run in non-headless mode and manually tweak this.')
+            time.sleep(60)
         if is_two_fa_page:
             radios = self.driver.find_elements_by_xpath('//*[@type="radio"]')
             radios[0].click()
@@ -57,16 +59,19 @@ class AmazonManger:
             continue_btn = self.driver.find_element_by_xpath('//*[@id="continue"]')
             continue_btn.click()
             LOGGER.info('2FA sent')
-            time.sleep(60)
-
-        time.sleep(60)
+            time.sleep(20)
         LOGGER.info('sign in completed')
 
     def start(self):
         self.driver.get("https://www.amazon.com")
         self.access_delivery_page()
+        error_count = 0
         while True:
-            self.check_time_window()
+            valid = self.check_time_window()
+            if not valid:
+                error_count += 1
+            if error_count > 15:
+                return
 
     def set_credentials(self):
         data = get_credentials()
@@ -79,6 +84,7 @@ class AmazonManger:
 
     @staticmethod
     def hover(d, el):
+        time.sleep(1)
         action = ActionChains(d).move_to_element(el)
         action.perform()
 
@@ -100,19 +106,27 @@ class AmazonManger:
         LOGGER.info('accessed {} delivery page'.format(self.name))
 
     def check_time_window(self):
+        time.sleep(2)
         date_containers = self.driver.find_elements_by_class_name('ufss-date-select-toggle-container')
         has_window = False
+        if len(date_containers) == 0:
+            LOGGER.info('page has no date containers. error out.')
+            return True
         for date_container in date_containers:
             if len(date_container.find_elements_by_class_name('ufss-unavailable')) == 0:
                 LOGGER.info('{} has delivery time window!'.format(self.name))
                 self.send_sms('{} has delivery time window!'.format(self.name))
+                try:
+                    self.place_order(date_container)
+                except Exception as e:
+                    LOGGER.exception('Failed to place order', e)
                 time.sleep(600)  # sleep 10 mins when a time window found
-                # self.place_order(date_container)
                 has_window = True
-        time.sleep(5)
+        time.sleep(2)
         if not has_window:
             LOGGER.info('{} No time window, refresh...'.format(self.name))
         self.driver.refresh()
+        return True
 
     def send_sms(self, text):
         account_sid = self.sid
@@ -124,21 +138,25 @@ class AmazonManger:
                 from_='+12062226523',
                 to='+1{}'.format(num)
             )
-    #
-    # def place_order(self, date_container):
-    #     date_container.click()
-    #     time.sleep(1)
-    #     time_container = self.driver.find_element_by_css_selector(
-    #         '.ufss-slot-container .ufss-slot.ufss-available')
-    #     time_container.click()
-    #     time.sleep(1)
-    #     continue_btn = self.driver.find_element_by_xpath(
-    #         '//*[@id="shipoption-select"]/div/div/div/div/div[2]/div[3]/div/span/span/span/input')
-    #     continue_btn.click()
-    #     time.sleep(1)
-    #     continue_btn = self.driver.find_element_by_xpath('//*[@id="continue-top"]')
-    #     continue_btn.click()
-    #     time.sleep(1)
-    #     place_order_btn = self.driver.find_element_by_xpath('//*[@id="placeYourOrder"]/span/input')
-    #     place_order_btn.click()
-    #     LOGGER.info('order complete')
+
+    def place_order(self, date_container):
+        date_container.click()
+        LOGGER.info('date selected')
+        time.sleep(1)
+        time_container = self.driver.find_element_by_css_selector(
+            '.ufss-slot-container .ufss-slot.ufss-available')
+        time_container.click()
+        LOGGER.info('time selected')
+        time.sleep(1)
+        continue_btn = self.driver.find_element_by_xpath(
+            '//*[@id="shipoption-select"]/div/div/div/div/div[2]/div[3]/div/span/span/span/input')
+        continue_btn.click()
+        LOGGER.info('continue btn clicked')
+        time.sleep(1)
+        continue_btn = self.driver.find_element_by_xpath('//*[@id="continue-top"]')
+        continue_btn.click()
+        LOGGER.info('top continue btn clicked')
+        time.sleep(1)
+        place_order_btn = self.driver.find_element_by_xpath('//*[@id="placeYourOrder"]/span/input')
+        place_order_btn.click()
+        LOGGER.info('order complete')
