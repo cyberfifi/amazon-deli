@@ -119,8 +119,8 @@ class AmazonManger:
                 try:
                     self.place_order(date_container)
                 except Exception as e:
-                    LOGGER.exception('Failed to place order', e)
-                time.sleep(600)  # sleep 10 mins when a time window found
+                    LOGGER.error('Failed to place order', e)
+                time.sleep(120)  # sleep 2 minutes when a time window found
                 has_window = True
         time.sleep(2)
         if not has_window:
